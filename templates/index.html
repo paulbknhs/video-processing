@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Video Audio Normalizer</title>
+    <script>
+        // Function to upload the file and show download link
+        function uploadFile() {
+            const formData = new FormData();
+            const fileInput = document.querySelector('input[type="file"]');
+            formData.append("file", fileInput.files[0]);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById("status").innerText = data.error;
+                } else {
+                    document.getElementById("status").innerText = "Processing complete!";
+                    
+                    // Create download button
+                    const downloadLink = document.createElement("a");
+                    downloadLink.href = data.download_url;
+                    downloadLink.innerText = "Download Processed File";
+                    downloadLink.className = "download-button";
+                    downloadLink.download = "";  // Optional to prompt download
+                    document.getElementById("download-container").innerHTML = "";  // Clear previous links
+                    document.getElementById("download-container").appendChild(downloadLink);
+                }
+            })
+            .catch(error => {
+                document.getElementById("status").innerText = "Error uploading file.";
+                console.error("Error uploading file:", error);
+            });
+        }
+    </script>
+    <style>
+        /* Optional styling for the download button */
+        .download-button {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .download-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload Video for Audio Normalization</h1>
+    <form onsubmit="uploadFile(); return false;">
+        <input type="file" name="file" accept="video/mp4" required>
+        <button type="submit">Upload and Normalize</button>
+    </form>
+    <div id="status"></div>
+    <div id="download-container"></div>
+</body>
+</html>
