@@ -42,13 +42,13 @@ def upload_file():
     # Provide download URL
     return jsonify({
         "download_url": f"/download/{output_filename}?t={int(time.time())}"
-        }), 200
+    }), 200
 
 @app.route("/download/<filename>", methods=["GET"])
 def download_file(filename):
     return send_from_directory(
-            app.config["OUTPUT_FOLDER"], filename, as_attachment=True
-            )
+        app.config["OUTPUT_FOLDER"], filename, as_attachment=True
+    )
 
 
 if __name__ == "__main__":
