@@ -1,37 +1,79 @@
 #!/usr/bin/env python3
-
 from flask import Flask, request, render_template, send_from_directory, jsonify, url_for
 import os
 import subprocess
+import threading
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import time
 
-# Initialize Flask app
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = "uploads"
 app.config["OUTPUT_FOLDER"] = "processed"
-app.config["ALLOWED_EXTENSIONS"] = {"mp4"}
 
 # Ensure upload and output directories exist
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 os.makedirs(app.config["OUTPUT_FOLDER"], exist_ok=True)
 
-def allowed_file(filename: str) -> bool:
-    """Check if a file is allowed based on its extension."""
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
+processing_progress = {"progress": 0}
+
+def allowed_file(filename):
+    """Check if the uploaded file has an allowed extension."""
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in {"mp4"}
+
+def get_file_duration(file_path):
+    """Get the duration of a media file in seconds using FFprobe."""
+    command = [
+        "ffprobe", "-v", "error", "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1", file_path
+    ]
+    try:
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        return float(result.stdout.strip())
+    except Exception:
+        return None  # Return None if duration cannot be determined
+
+def run_ffmpeg(input_path, output_path):
+    """Run FFmpeg and update progress."""
+    global processing_progress
+    total_duration = get_file_duration(input_path)
+    if total_duration is None:
+        total_duration = 1  # Avoid division by zero; fallback value
+
+    command = [
+        "ffmpeg", "-i", input_path, "-af", "loudnorm",
+        "-progress", "-", "-nostats", output_path
+    ]
+    process = subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+    )
+
+    for line in process.stdout:
+        if "out_time_ms" in line:
+            try:
+                # Parse progress and calculate percentage
+                time_ms = int(line.split("=")[1].strip())
+                current_time = time_ms / 1000000  # Convert microseconds to seconds
+                progress = min(int((current_time / total_duration) * 100), 100)
+                processing_progress["progress"] = progress
+            except ValueError:
+                pass
+
+    process.wait()
+    processing_progress["progress"] = 100  # Ensure progress is marked complete
 
 @app.route("/")
 def index():
-    """Serve the main page."""
+    """Render the index page."""
     return render_template("index.html")
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
-    """Handle file uploads."""
+    """Handle file upload and start FFmpeg processing."""
+    global processing_progress
+
     if "file" not in request.files:
         return jsonify({"error": "No file part in the request"}), 400
-    
     file = request.files["file"]
     if file.filename == "":
         return jsonify({"error": "No file selected"}), 400
@@ -47,17 +89,27 @@ def upload_file():
     output_filename = f"normalized_{timestamp}.mp4"
     output_path = os.path.join(app.config["OUTPUT_FOLDER"], output_filename)
 
-    # Normalize audio using FFmpeg
-    subprocess.run(["ffmpeg", "-i", input_path, "-af", "loudnorm", output_path])
+    # Reset progress
+    processing_progress = {"progress": 0}
+
+    # Start FFmpeg processing in a thread
+    thread = threading.Thread(target=run_ffmpeg, args=(input_path, output_path))
+    thread.start()
+    thread.join()  # Wait for the thread to complete
 
     # Provide download URL
     return jsonify({
         "download_url": url_for("download_file", filename=output_filename, _external=True)
     }), 200
 
+@app.route("/processing-progress", methods=["GET"])
+def get_progress():
+    """Return the current processing progress."""
+    return jsonify(processing_progress)
+
 @app.route("/download/<filename>", methods=["GET"])
-def download_file(filename: str):
-    """Serve the processed file for download."""
+def download_file(filename):
+    """Allow downloading the processed file."""
     return send_from_directory(
         app.config["OUTPUT_FOLDER"], filename, as_attachment=True
     )

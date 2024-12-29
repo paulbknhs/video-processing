@@ -1,13 +1,11 @@
 function uploadFile() {
   const formData = new FormData();
   const fileInput = document.querySelector('input[type="file"]');
-
-  if (!fileInput.files.length) {
-    document.getElementById("status").innerText = "Please select a file.";
-    return;
-  }
-
   formData.append("file", fileInput.files[0]);
+
+  const statusElement = document.getElementById("status");
+  const progressBar = document.getElementById("progress-bar");
+  const downloadContainer = document.getElementById("download-container");
 
   fetch("/upload", {
     method: "POST",
@@ -16,20 +14,37 @@ function uploadFile() {
     .then((response) => response.json())
     .then((data) => {
       if (data.error) {
-        document.getElementById("status").innerText = data.error;
+        statusElement.innerText = data.error;
       } else {
-        document.getElementById("status").innerText = "Processing completed!";
-        const downloadLink = document.createElement("a");
-        downloadLink.href = data.download_url;
-        downloadLink.innerText = "Download File";
-        downloadLink.className = "download-button";
-        downloadLink.download = ""; // Optional to prompt download
-        document.getElementById("download-container").innerHTML = ""; // Clear previous links
-        document.getElementById("download-container").appendChild(downloadLink);
+        statusElement.innerText = "Verarbeitung läuft...";
+        const downloadUrl = data.download_url;
+
+        // Start polling for progress updates
+        const intervalId = setInterval(() => {
+          fetch("/processing-progress")
+            .then((res) => res.json())
+            .then((progressData) => {
+              const progress = progressData.progress;
+              progressBar.style.width = `${progress}%`;
+              progressBar.innerText = `${progress}%`;
+
+              if (progress >= 100) {
+                clearInterval(intervalId);
+                statusElement.innerText = "Verarbeitung abgeschlossen!";
+                const downloadLink = document.createElement("a");
+                downloadLink.href = downloadUrl;
+                downloadLink.innerText = "Datei herunterladen";
+                downloadLink.className = "download-button";
+                downloadLink.download = ""; // Optional to prompt download
+                downloadContainer.innerHTML = ""; // Clear previous links
+                downloadContainer.appendChild(downloadLink);
+              }
+            });
+        }, 1000);
       }
     })
     .catch((error) => {
-      document.getElementById("status").innerText = "An error occurred.";
+      statusElement.innerText = "Es ist ein Fehler aufgetreten.";
       console.error("Error uploading file:", error);
     });
 }

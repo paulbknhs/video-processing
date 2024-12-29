@@ -33,3 +33,20 @@ form {
 .download-button:hover {
   background-color: #45a049;
 }
+
+#progress-container {
+  width: 100%;
+  background-color: #ddd;
+  border-radius: 5px;
+  margin: 10px 0;
+}
+
+#progress-bar {
+  width: 0;
+  height: 20px;
+  background-color: #4caf50;
+  color: white;
+  text-align: center;
+  line-height: 20px;
+  border-radius: 5px;
+}
