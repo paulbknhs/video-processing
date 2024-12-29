@@ -1,6 +1,12 @@
 function uploadFile() {
   const formData = new FormData();
   const fileInput = document.querySelector('input[type="file"]');
+
+  if (!fileInput.files.length) {
+    document.getElementById("status").innerText = "Please select a file.";
+    return;
+  }
+
   formData.append("file", fileInput.files[0]);
 
   fetch("/upload", {
@@ -12,11 +18,10 @@ function uploadFile() {
       if (data.error) {
         document.getElementById("status").innerText = data.error;
       } else {
-        document.getElementById("status").innerText =
-          "Verarbeitung abgeschlossen!";
+        document.getElementById("status").innerText = "Processing completed!";
         const downloadLink = document.createElement("a");
         downloadLink.href = data.download_url;
-        downloadLink.innerText = "Datei herunterladen";
+        downloadLink.innerText = "Download File";
         downloadLink.className = "download-button";
         downloadLink.download = ""; // Optional to prompt download
         document.getElementById("download-container").innerHTML = ""; // Clear previous links
@@ -24,8 +29,7 @@ function uploadFile() {
       }
     })
     .catch((error) => {
-      document.getElementById("status").innerText =
-        "Es ist ein Fehler aufgetreten.";
+      document.getElementById("status").innerText = "An error occurred.";
       console.error("Error uploading file:", error);
     });
 }

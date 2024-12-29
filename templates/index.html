@@ -1,16 +1,20 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" type="text/css" href="/style.css" />
-    <script src="/script.js"></script>
-    <title>mp4 Audio Kompressor</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <title>MP4 Audio Compressor</title>
   </head>
   <body>
-    <h1>Audiokompressor auf mp4 anwenden</h1>
-    <form onsubmit="uploadFile(); return false;">
+    <h1>Apply Audio Compression to MP4</h1>
+    <form id="upload-form" onsubmit="uploadFile(); return false;">
       <input type="file" name="file" accept="video/mp4" required />
-      <button type="submit">Starten</button>
+      <button type="submit">Start</button>
     </form>
     <div id="status"></div>
     <div id="download-container"></div>

@@ -1,8 +1,22 @@
 body {
   font-family: Arial, sans-serif;
   margin: 0;
-  padding: 0;
-  background-color: #a1aab4;
+  padding: 20px;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+h1 {
+  color: #4caf50;
+}
+
+form {
+  margin-bottom: 20px;
+}
+
+#status {
+  margin-top: 10px;
+  font-weight: bold;
 }
 
 .download-button {
@@ -13,7 +27,9 @@ body {
   color: white;
   text-decoration: none;
   border-radius: 5px;
+  font-size: 14px;
 }
+
 .download-button:hover {
   background-color: #45a049;
 }
