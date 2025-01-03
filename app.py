@@ -6,6 +6,8 @@ import threading
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import time
+import glob
+from pathlib import Path
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = "uploads"
@@ -62,10 +64,51 @@ def run_ffmpeg(input_path, output_path):
     process.wait()
     processing_progress["progress"] = 100  # Ensure progress is marked complete
 
+def get_processed_files():
+    """Get list of processed files with their metadata."""
+    files = []
+    for file_path in glob.glob(os.path.join(app.config["OUTPUT_FOLDER"], "*.mp4")):
+        path = Path(file_path)
+        files.append({
+            'filename': path.name,
+            'timestamp': datetime.fromtimestamp(path.stat().st_mtime),
+            'thumbnail_url': url_for('get_thumbnail', filename=path.name)
+        })
+    # Sortiere nach Zeitstempel, neueste zuerst
+    return sorted(files, key=lambda x: x['timestamp'], reverse=True)
+
+def generate_thumbnail(video_path, thumbnail_path):
+    """Generate thumbnail for video file."""
+    command = [
+        "ffmpeg", "-i", video_path,
+        "-ss", "00:00:01",  # Nimm Frame nach 1 Sekunde
+        "-vframes", "1",
+        "-vf", "scale=120:-1",  # Thumbnail Breite: 120px, Höhe proportional
+        thumbnail_path
+    ]
+    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
 @app.route("/")
 def index():
-    """Render the index page."""
-    return render_template("index.html")
+    """Render the index page with list of processed files."""
+    processed_files = get_processed_files()
+    return render_template("index.html", processed_files=processed_files)
+
+@app.route("/thumbnail/<filename>")
+def get_thumbnail(filename):
+    """Serve video thumbnail."""
+    video_path = os.path.join(app.config["OUTPUT_FOLDER"], filename)
+    thumbnail_dir = os.path.join(app.config["OUTPUT_FOLDER"], "thumbnails")
+    os.makedirs(thumbnail_dir, exist_ok=True)
+    
+    thumbnail_filename = f"{Path(filename).stem}_thumb.jpg"
+    thumbnail_path = os.path.join(thumbnail_dir, thumbnail_filename)
+    
+    # Generiere Thumbnail wenn es noch nicht existiert
+    if not os.path.exists(thumbnail_path):
+        generate_thumbnail(video_path, thumbnail_path)
+    
+    return send_from_directory(thumbnail_dir, thumbnail_filename)
 
 @app.route("/upload", methods=["POST"])
 def upload_file():

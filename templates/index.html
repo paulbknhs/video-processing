@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <link
@@ -11,15 +11,35 @@
     <title>MP4 Audio Compressor</title>
   </head>
   <body>
-    <h1>Apply Audio Compression to MP4</h1>
-    <form id="upload-form" onsubmit="uploadFile(); return false;">
-      <input type="file" name="file" accept="video/mp4" required />
-      <button type="submit">Start</button>
-    </form>
-    <div id="progress-container">
-      <div id="progress-bar">0%</div>
-    </div>    
-    <div id="status"></div>
-    <div id="download-container"></div>
+    <div class="container">
+      <h2>Apply Audio Compression to MP4</h2>
+      <form id="upload-form" onsubmit="uploadFile(); return false;">
+        <input type="file" name="file" accept="video/mp4" required />
+        <button type="submit">Start</button>
+      </form>
+      <div id="progress-container">
+        <div id="progress-bar">0%</div>
+      </div>
+      <div id="status"></div>
+      <div id="download-container"></div>
+
+      {% if processed_files %}
+      <div class="processed-files">
+        <h3>Verarbeitete Dateien</h3>
+        <div class="files-grid">
+          {% for file in processed_files %}
+          <div class="file-item">
+            <img src="{{ file.thumbnail_url }}" alt="Thumbnail" class="file-thumbnail">
+            <div class="file-info">
+              <span class="file-date">{{ file.timestamp.strftime('%d.%m.%Y %H:%M') }}</span>
+              <a href="{{ url_for('download_file', filename=file.filename) }}" 
+                 class="download-button" download>Download</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
   </body>
 </html>
