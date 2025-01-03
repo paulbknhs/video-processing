@@ -15,40 +15,43 @@ function uploadFile() {
   downloadContainer.innerHTML = "";
 
   const xhr = new XMLHttpRequest();
-  
+
   // Upload Progress Handler
   let lastLoaded = 0;
   let lastTime = Date.now();
   let uploadSpeed = 0;
-  
+
   xhr.upload.addEventListener("progress", (event) => {
     if (event.lengthComputable) {
       const currentTime = Date.now();
       const timeDiff = (currentTime - lastTime) / 1000; // in Sekunden
       const loadedDiff = event.loaded - lastLoaded;
-      
+
       // Berechne Upload-Geschwindigkeit (Bytes pro Sekunde)
       if (timeDiff > 0) {
         uploadSpeed = loadedDiff / timeDiff;
       }
-      
+
       // Aktualisiere die Werte für die nächste Berechnung
       lastLoaded = event.loaded;
       lastTime = currentTime;
 
       const uploadProgress = Math.round((event.loaded / event.total) * 100);
-      
+
       // Schätze die verbleibende Zeit
       const remainingBytes = event.total - event.loaded;
-      const remainingSeconds = uploadSpeed > 0 ? remainingBytes / uploadSpeed : 0;
+      const remainingSeconds =
+        uploadSpeed > 0 ? remainingBytes / uploadSpeed : 0;
       const remainingTime = Math.ceil(remainingSeconds);
-      
+
       progressBar.style.width = `${uploadProgress}%`;
-      progressBar.innerText = `Upload: ${uploadProgress}% (noch ca. ${remainingTime} Sekunden)`;
+      progressBar.innerText = `Upload: ${uploadProgress}%`;
+      statusElement.innerText =
+        "Datei wird hochgeladen... (etwa ${remainingTime} verbleibend";
     }
   });
 
-  xhr.onload = function() {
+  xhr.onload = function () {
     if (xhr.status === 200) {
       const data = JSON.parse(xhr.responseText);
       statusElement.innerText = "Datei wird konvertiert...";
@@ -76,10 +79,10 @@ function uploadFile() {
               downloadLink.download = "";
               downloadContainer.innerHTML = "";
               downloadContainer.appendChild(downloadLink);
-              
+
               // Datei-Input zurücksetzen
               fileInput.value = "";
-              
+
               // Seite neu laden um die neue Datei in der Liste anzuzeigen
               setTimeout(() => {
                 window.location.reload();
@@ -93,7 +96,7 @@ function uploadFile() {
     }
   };
 
-  xhr.onerror = function() {
+  xhr.onerror = function () {
     statusElement.innerText = "Es ist ein Fehler aufgetreten.";
     console.error("Error uploading file:", xhr.statusText);
   };
