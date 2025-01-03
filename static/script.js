@@ -46,7 +46,7 @@ function uploadFile() {
 
       progressBar.style.width = `${uploadProgress}%`;
       progressBar.innerText = `Upload: ${uploadProgress}%`;
-      statusElement.innerText = `Datei wird hochgeladen... (etwa ${remainingTime} Sekunden verbleibend`;
+      statusElement.innerText = `Datei wird hochgeladen... (etwa ${remainingTime} Sekunden verbleibend)`;
     }
   });
 
