@@ -117,6 +117,7 @@ def upload_file():
 
     if "file" not in request.files:
         return jsonify({"error": "No file part in the request"}), 400
+    
     file = request.files["file"]
     if file.filename == "":
         return jsonify({"error": "No file selected"}), 400
@@ -125,25 +126,31 @@ def upload_file():
 
     filename = secure_filename(file.filename)
     input_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-    file.save(input_path)
+    
+    # Reset progress
+    processing_progress = {"progress": 0}
 
     # Generate timestamped output filename
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
     output_filename = f"normalized_{timestamp}.mp4"
     output_path = os.path.join(app.config["OUTPUT_FOLDER"], output_filename)
 
-    # Reset progress
-    processing_progress = {"progress": 0}
+    try:
+        # Speichere die Datei
+        file.save(input_path)
+        
+        # Starte FFmpeg-Verarbeitung im Hintergrund
+        thread = threading.Thread(target=run_ffmpeg, args=(input_path, output_path))
+        thread.daemon = True  # Daemon-Thread wird beendet, wenn Hauptprogramm endet
+        thread.start()
 
-    # Start FFmpeg processing in a thread
-    thread = threading.Thread(target=run_ffmpeg, args=(input_path, output_path))
-    thread.start()
-    thread.join()  # Wait for the thread to complete
+        # Gib sofort Antwort zurück
+        return jsonify({
+            "download_url": url_for("download_file", filename=output_filename, _external=True)
+        }), 200
 
-    # Provide download URL
-    return jsonify({
-        "download_url": url_for("download_file", filename=output_filename, _external=True)
-    }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/processing-progress", methods=["GET"])
 def get_progress():
